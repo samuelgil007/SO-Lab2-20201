@@ -102,22 +102,24 @@ int leer_comando(char cmd[], char *par[], char line[])
         par[j] = array[j];
     }
     par[i] = NULL; //Terminar la lista de parametros
-
+    
     //pregunto por el caso favorable (para ver luego si si es favorable en verdad)
     if (redirection == 1 && positionRedi != -1)
     {
+        
         if ((i - (positionRedi + 1)) != 1)
         {
             //quiere decir que hay 2 o mas parametros ala derecha de > , se deja la
             //posicion del primer archivo para guardar alli el mensaje de error
+           
             redirection = -1;
         }
-        if (array[positionRedi + 1] == NULL)
+        if (array[positionRedi + 1] == NULL || positionRedi==(i-1))
         {
             //como cumplio que desps del > hay nada se pone como malo
             redirection = -1;
             positionRedi = -1;
-            write(STDERR_FILENO, error_message, strlen(error_message));
+            
             //exit(1);
         }
     }
@@ -243,8 +245,8 @@ void ejecutar_comando(char command[], char *parameters[], char line[], int posRe
                     }
                     else if (redirection == -1)
                     {
-                        printf("An error has occurred");
-                        exit(1);
+                        write(STDERR_FILENO, error_message, strlen(error_message));
+                        exit(0);
                     }
                 }
             }
