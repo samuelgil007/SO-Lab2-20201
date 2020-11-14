@@ -20,11 +20,11 @@ void type_prompt()
 
     if (strcmp(directorio, "") == 0)
     {
-        printf("ShellSamuel>"); //MOSTRAR SHELL
+        printf("wish>"); //MOSTRAR SHELL
     }
     else
     {
-        printf("ShellSamuel>%s>", directorio); //MOSTRAR SHELL
+        printf("wishl>%s>", directorio); //MOSTRAR SHELL
     }
 }
 int estaEnElPath(char command[])
@@ -45,7 +45,7 @@ int estaEnElPath(char command[])
             // Si no se encuentra directorio no se ejecuta el comando
             if (i == (numPath - 1))
             {
-                printf("No se puede encontrar ese comando en el path: %s\n", command);
+                /* printf("No se puede encontrar ese comando en el path: %s\n", command); */
                 return 99;
             }
         }
@@ -55,7 +55,7 @@ int estaEnElPath(char command[])
 
 void leer_comando(char cmd[], char *par[], char line[])
 {
-    int  i = 0;
+    int i = 0;
     char *array[100];
     strtok(line, "\n");
 
@@ -92,8 +92,15 @@ void ejecutar_comando(char command[], char *parameters[], char line[])
 
     if (strcmp(command, "exit") == 0)
     {
-        salidaGlobal = 1;
-        return;
+        if (parameters[1] != NULL)
+        {
+            write(STDERR_FILENO, error_message, strlen(error_message));
+        }
+        else
+        {
+            salidaGlobal = 1;
+            return;
+        }
     }
     else if (strcmp(command, "path") == 0)
     {
@@ -119,17 +126,17 @@ void ejecutar_comando(char command[], char *parameters[], char line[])
     {
         if (chdir(parameters[1]) != 0 && parameters[1] != NULL)
         {
-            printf("No se puede encontrar ese directorio %s\n", parameters[1]);
-            write(STDERR_FILENO, error_message, strlen(error_message)); 
+            /* printf("No se puede encontrar ese directorio %s\n", error_message); */
+            write(STDERR_FILENO, error_message, strlen(error_message));
         }
         else if (parameters[1] == NULL)
         {
-            printf("Error 0 o mas de 1 argumento \n");
-            write(STDERR_FILENO, error_message, strlen(error_message)); 
+            /* printf("Error 0 o mas de 1 argumento \n"); */
+            write(STDERR_FILENO, error_message, strlen(error_message));
         }
         else
         {
-            printf("ingresó a %s \n",parameters[1]); //menos ..
+            /* printf("ingresó a %s \n",parameters[1]); //menos .. */
             //chdir(parameters[1]); vuela
             strcat(directorio, parameters[1]);
         }
@@ -157,17 +164,17 @@ int main(int argc, char *argv[])
     numPath = 2;
     paths = malloc((numPath) * sizeof(char *));
     paths[1] = "/bin/";
-    
+
     //Modo batch
-    if (argc > 1)
+    if (argc == 2)
     {
         FILE *fp = stdin;
         fp = fopen(argv[1], "r");
         if (fp == NULL)
         {
-            printf("Error con el archivo de texto \n");
-            write(STDERR_FILENO, error_message, strlen(error_message)); 
-			exit(1);
+            /* printf("Error con el archivo de texto \n"); */
+            write(STDERR_FILENO, error_message, strlen(error_message));
+            exit(1);
             //return 0;
         }
         else
@@ -179,12 +186,14 @@ int main(int argc, char *argv[])
                 char *line = NULL;
                 size_t size = 0;
                 linex = getline(&line, &size, fp);
-                if (linex == -1) {
-                    if (argc != 1 && feof(fp)) {
+                if (linex == -1)
+                {
+                    if (argc != 1 && feof(fp))
+                    {
                         fclose(fp);
                         exit(0);
                     }
-	        	}
+                }
 
                 if (strcmp(line, "") == 0)
                 {
@@ -192,7 +201,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    printf("%s \n", line);
+                    /*  printf("%s \n", line); */
                     leer_comando(command, parameters, line);
                     ejecutar_comando(command, parameters, line);
                 }
@@ -201,7 +210,7 @@ int main(int argc, char *argv[])
         fclose(fp);
     }
     //Modo interactivo
-    else
+    else if (argc == 1)
     {
         salidaGlobal = 0;
         while (salidaGlobal != 1)
@@ -214,5 +223,10 @@ int main(int argc, char *argv[])
             ejecutar_comando(command, parameters, line);
         }
     }
-    return 0;
+    else
+    {
+        write(STDERR_FILENO, error_message, strlen(error_message));
+        exit(1);
+    }
+   exit(0);
 }
