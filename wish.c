@@ -6,6 +6,7 @@
 char directorio[30];
 int salidaGlobal, numPath, numPath = 2;
 char **paths;
+char error_message[30] = "An error has occurred\n";
 
 void type_prompt()
 {
@@ -26,7 +27,6 @@ void type_prompt()
         printf("ShellSamuel>%s>", directorio); //MOSTRAR SHELL
     }
 }
-
 int estaEnElPath(char command[])
 {
     for (int i = 0; i < numPath; i++)
@@ -55,7 +55,7 @@ int estaEnElPath(char command[])
 
 void leer_comando(char cmd[], char *par[], char line[])
 {
-    int i = 0;
+    int  i = 0;
     char *array[100];
     strtok(line, "\n");
 
@@ -65,15 +65,17 @@ void leer_comando(char cmd[], char *par[], char line[])
 
     while (token != NULL)
     {
+
         array[i++] = token;
         token = strtok(NULL, " ");
     }
+
+    // La primera palabra es el comando
     strcpy(cmd, array[0]);
     if (strcmp(cmd, "path") == 0)
     {
         numPath = i;
     }
-
     // Los otros son los parametros
 
     for (int j = 0; j < i; j++)
@@ -118,14 +120,17 @@ void ejecutar_comando(char command[], char *parameters[], char line[])
         if (chdir(parameters[1]) != 0 && parameters[1] != NULL)
         {
             printf("No se puede encontrar ese directorio %s\n", parameters[1]);
+            write(STDERR_FILENO, error_message, strlen(error_message)); 
         }
         else if (parameters[1] == NULL)
         {
             printf("Error 0 o mas de 1 argumento \n");
+            write(STDERR_FILENO, error_message, strlen(error_message)); 
         }
         else
         {
-            chdir(parameters[1]);
+            printf("ingresó a %s \n",parameters[1]); //menos ..
+            //chdir(parameters[1]); vuela
             strcat(directorio, parameters[1]);
         }
         return;
@@ -152,7 +157,7 @@ int main(int argc, char *argv[])
     numPath = 2;
     paths = malloc((numPath) * sizeof(char *));
     paths[1] = "/bin/";
-
+    
     //Modo batch
     if (argc > 1)
     {
@@ -161,16 +166,26 @@ int main(int argc, char *argv[])
         if (fp == NULL)
         {
             printf("Error con el archivo de texto \n");
-            return 0;
+            write(STDERR_FILENO, error_message, strlen(error_message)); 
+			exit(1);
+            //return 0;
         }
         else
         {
+            int linex = 0;
             salidaGlobal = 0;
             while (salidaGlobal != 1)
             {
                 char *line = NULL;
                 size_t size = 0;
-                getline(&line, &size, fp);
+                linex = getline(&line, &size, fp);
+                if (linex == -1) {
+                    if (argc != 1 && feof(fp)) {
+                        fclose(fp);
+                        exit(0);
+                    }
+	        	}
+
                 if (strcmp(line, "") == 0)
                 {
                     salidaGlobal = 1;
