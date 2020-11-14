@@ -9,7 +9,9 @@ char directorio[30];
 int salidaGlobal, numPath, numPath = 2;
 char **paths;
 char error_message[30] = "An error has occurred\n";
-int redirection;
+int redirection, tamanoItems;
+int settingLine(char *line, ssize_t linex);
+
 
 void type_prompt()
 {
@@ -265,7 +267,7 @@ int main(int argc, char *argv[])
     paths = malloc((numPath) * sizeof(char *));
     paths[1] = "/bin";
 
-    //Modo batch
+    //////////////////////////////////////////////Modo batch
     if (argc == 2)
     {
         FILE *fp = stdin;
@@ -279,7 +281,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            int linex = 0;
+            ssize_t linex = 0;
             salidaGlobal = 0;
             redirection = 0;
             while (salidaGlobal != 1)
@@ -295,38 +297,42 @@ int main(int argc, char *argv[])
                         exit(0);
                     }
                 }
-
-                if (strcmp(line, "") == 0)
-                {
-                    salidaGlobal = 1;
-                }
-                else if (strcmp(line, "\n") == 0)
-                {
-                }
-                else
-                {
-                    //printf("zoooo %s \n", line);
-                    int posRedi = leer_comando(command, parameters, strdup(line));
-                    ejecutar_comando(command, parameters, strdup(line), posRedi);
-                    redirection = 0;
-                }
+                tamanoItems = settingLine(line, linex);
+                if(tamanoItems == -1){
+				    write(STDERR_FILENO, error_message, strlen(error_message));
+				    continue;;
+			    }
+			    if(tamanoItems == 0){continue;}
+                int posRedi = leer_comando(command, parameters, strdup(line));
+                ejecutar_comando(command, parameters, strdup(line), posRedi);
+                redirection = 0;
+                
             }
             fclose(fp);
         }
     }
-    //Modo interactivo
+    ////////////////////////////////////////Modo interactivo
     else if (argc == 1)
     {
         salidaGlobal = 0;
         redirection = 0;
+        ssize_t linex = 0;
         while (salidaGlobal != 1)
         {
             type_prompt(); //mostrar pantalla prompt
             char *line = NULL;
             size_t size = 0;
-            getline(&line, &size, stdin);
+            linex = getline(&line, &size, stdin);
+            if(linex <= 1){
+				continue;
+			}
+            tamanoItems = settingLine(line, linex);
+            if(tamanoItems == -1){
+				write(STDERR_FILENO, error_message, strlen(error_message));
+				continue;
+			}
+			if(tamanoItems == 0){continue;}
             int posRedi = leer_comando(command, parameters, line); // leer el input
-            //printf("hay > ? %d en la posicion: %d \n" , redirection, posRedi);
             ejecutar_comando(command, parameters, line, posRedi);
             redirection = 0;
         }
@@ -337,4 +343,35 @@ int main(int argc, char *argv[])
         exit(1);
     }
     exit(0);
+}
+
+//se le da formato a la linea de entrada (convirtiendo todo lo raro a espacio)
+//para poder separar por espacios de manera sencilla
+int settingLine(char *line, ssize_t linex){
+    //numero de parametros buenos (no espacios)
+    int wordsNum = 1;
+    //se asigna al ultimo espacio del comando el nulo
+	line[linex - 1] = '\0';
+
+	// aqui se convierte todo lo raro a espacios
+	for(int i = 0; i < linex; i++){
+		if(line[i] == '\t' || line[i] == '\n' || line[i] == '\a' || line[i] =='\r')
+			 line[i] = ' ';
+	}	
+
+	// borrar espacios del principio
+	while(*line == ' ' ){
+		line++;
+		linex--;
+	}
+    //si no hay nada de entrada se devuelve
+	if(linex <= 1)
+		return  0;
+
+	// se cuenta el numero de palabras (buenas)
+	for(int i = 1; line[i] != '\0'; i++){
+		if( line[i] != ' ' &&  line[i-1] == ' ')
+			wordsNum++;
+	}
+	return wordsNum;
 }
