@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 char directorio[30];
-int salidaGlobal, numPath, numPara = 1;
+int salidaGlobal, numPath, numPath = 2;
 char **paths;
 
 void type_prompt()
@@ -27,25 +27,53 @@ void type_prompt()
     }
 }
 
+int estaEnElPath(char command[])
+{
+    for (int i = 0; i < numPath; i++)
+    {
+        if (paths[i] != NULL)
+        {
+
+            char esBin[30];
+            strcpy(esBin, paths[i]);
+            strcat(esBin, command);
+            if (access(esBin, X_OK) == 0)
+            {
+                return i;
+            }
+
+            // Si no se encuentra directorio no se ejecuta el comando
+            if (i == (numPath - 1))
+            {
+                printf("No se puede encontrar ese comando en el path: %s\n", command);
+                return 99;
+            }
+        }
+    }
+    return 99;
+}
+
 void leer_comando(char cmd[], char *par[], char line[])
 {
     int i = 0;
     char *array[100];
-   
+    strtok(line, "\n");
 
     // Extract the first token
-    char *token = strtok(line, "  \t\r\n\a");
+    char *token = strtok(line, " \r");
     // loop through the string to extract all other tokens
 
     while (token != NULL)
     {
-
         array[i++] = token;
         token = strtok(NULL, " ");
     }
-    numPara = i;
-    // La primera palabra es el comando
     strcpy(cmd, array[0]);
+    if (strcmp(cmd, "path") == 0)
+    {
+        numPath = i;
+    }
+
     // Los otros son los parametros
 
     for (int j = 0; j < i; j++)
@@ -55,36 +83,11 @@ void leer_comando(char cmd[], char *par[], char line[])
     par[i] = NULL; //Terminar la lista de parametros
 }
 
-int estaEnElPath(char command[])
-{
-    for (int i = 1; i <= numPara; i++)
-    {
-        if (paths[i] != NULL)
-        {
-            char esBin[30];
-            strcpy(esBin, paths[i]);
-            strcat(esBin, command);
-            /* printf("Entra: %s%s \n", paths[i], command); */
-            if (access(esBin, X_OK) == 0)
-                return i;
-
-            // Si no se encuentra directorio no se ejecuta el comando
-            if (i == (numPara - 1))
-            {
-                printf("No se puede encontrar ese comando en el path: %s\n", command);
-                return 99;
-            }
-        } else {
-            printf("No hay paths guardados \n");
-        }
-    }
-    return 99;
-}
-
 void ejecutar_comando(char command[], char *parameters[], char line[])
 {
     //identifica comandos, si no lo encuentra hace un bin por defecto
     char cmd[100];
+
     if (strcmp(command, "exit") == 0)
     {
         salidaGlobal = 1;
@@ -92,10 +95,21 @@ void ejecutar_comando(char command[], char *parameters[], char line[])
     }
     else if (strcmp(command, "path") == 0)
     {
-        paths = malloc((numPara) * sizeof(char *));
-        for (int i = 1; i <= numPara; i++)
+
+        if (numPath == 0)
         {
-            paths[i] = parameters[i];
+            char **newPaths = malloc((1) * sizeof(char *));
+            newPaths[0] = "l";
+            paths = newPaths;
+        }
+        else
+        {
+            char **newPaths = malloc((numPath) * sizeof(char *));
+            for (int i = 0; i < numPath; i++)
+            {
+                newPaths[i] = parameters[i];
+            }
+            paths = newPaths;
         }
         return;
     }
@@ -142,8 +156,7 @@ int main(int argc, char *argv[])
     //Modo batch
     if (argc > 1)
     {
-
-        FILE *fp;
+        FILE *fp = stdin;
         fp = fopen(argv[1], "r");
         if (fp == NULL)
         {
@@ -155,10 +168,9 @@ int main(int argc, char *argv[])
             salidaGlobal = 0;
             while (salidaGlobal != 1)
             {
-                char *line; 
+                char *line = NULL;
                 size_t size = 0;
                 getline(&line, &size, fp);
-
                 if (strcmp(line, "") == 0)
                 {
                     salidaGlobal = 1;
@@ -180,7 +192,7 @@ int main(int argc, char *argv[])
         while (salidaGlobal != 1)
         {
             type_prompt(); //mostrar pantalla prompt
-            char *line;
+            char *line = NULL;
             size_t size = 0;
             getline(&line, &size, stdin);
             leer_comando(command, parameters, line); // leer el input
