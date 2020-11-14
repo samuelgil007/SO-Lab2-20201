@@ -34,10 +34,11 @@ int estaEnElPath(char command[])
         if (paths[i] != NULL)
         {
 
-            char esBin[30];
-            strcpy(esBin, paths[i]);
-            strcat(esBin, command);
-            if (access(esBin, X_OK) == 0)
+            char esta[30];            
+            strcpy(esta, paths[i]);
+            strcat(esta, "/");
+            strcat(esta, command);
+            if (access(esta, X_OK) == 0)
             {
                 return i;
             }
@@ -45,7 +46,7 @@ int estaEnElPath(char command[])
             // Si no se encuentra directorio no se ejecuta el comando
             if (i == (numPath - 1))
             {
-                /* printf("No se puede encontrar ese comando en el path: %s\n", command); */
+                /* printf("No se puede encontrar ese comando en el path: %s\n", command); */               
                 return 99;
             }
         }
@@ -89,7 +90,7 @@ void ejecutar_comando(char command[], char *parameters[], char line[])
 {
     //identifica comandos, si no lo encuentra hace un bin por defecto
     char cmd[100];
-
+    int esBin = estaEnElPath(command);
     if (strcmp(command, "exit") == 0)
     {
         if (parameters[1] != NULL)
@@ -142,8 +143,7 @@ void ejecutar_comando(char command[], char *parameters[], char line[])
         }
         return;
     }
-    int esBin = estaEnElPath(command);
-    if (esBin != 99)
+    else if (esBin != 99)
     {
         if (fork() != 0)
         {
@@ -151,10 +151,14 @@ void ejecutar_comando(char command[], char *parameters[], char line[])
         }
         else
         {
+
             strcpy(cmd, paths[esBin]);
+            strcat(cmd, "/");
             strcat(cmd, command);
             execv(cmd, parameters); // ejecutar comando
         }
+    }else {
+        write(STDERR_FILENO, error_message, strlen(error_message));
     }
 }
 
@@ -163,7 +167,7 @@ int main(int argc, char *argv[])
     char command[100], *parameters[20];
     numPath = 2;
     paths = malloc((numPath) * sizeof(char *));
-    paths[1] = "/bin/";
+    paths[1] = "/bin";
 
     //Modo batch
     if (argc == 2)
@@ -228,5 +232,5 @@ int main(int argc, char *argv[])
         write(STDERR_FILENO, error_message, strlen(error_message));
         exit(1);
     }
-   exit(0);
+    exit(0);
 }
